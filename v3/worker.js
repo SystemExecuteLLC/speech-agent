@@ -70,7 +70,7 @@ chrome.action.onClicked.addListener(tab => {
         url: `data/ui/index.html?tabId=${tab.id}`,
         type: 'popup',
         width: 400,
-        height: 600
+        height: 100
       });
     }
   });

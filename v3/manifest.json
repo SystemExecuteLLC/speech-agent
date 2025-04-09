@@ -4,6 +4,7 @@
   "name": "SpeechAgent - Live Voice Typing",
   "description": "Speech to text converter to fill active text area with your voice using the built-in speech recognition engine of your browser",
   "permissions": [
+    "system.display",
     "storage",
     "activeTab",
     "scripting",
