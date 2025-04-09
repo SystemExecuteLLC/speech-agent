@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "icons": {
     "16": "data/icons/16.png",
@@ -22,7 +23,6 @@
     "service_worker": "worker.js"
   },
   "action": {
-    "default_popup": "data/ui/index.html"
   },
   "commands": {
     "_execute_action": {

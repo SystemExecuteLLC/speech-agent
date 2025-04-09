@@ -48,9 +48,21 @@ class SSR {
         this.transcripts[this.step] = content;
         textarea.value = this.transcripts.reduce((p, c) => p += c);
 
-        port.postMessage({
-          transcript: textarea.value
-        });
+        // Send transcript to background worker
+        if (tabId) {
+          console.log("Sending transcript to background worker:", textarea.value);
+          chrome.runtime.sendMessage({
+            action: "transcript",
+            tabId: parseInt(tabId),
+            transcript: textarea.value
+          }, response => {
+            if (chrome.runtime.lastError) {
+              console.error("Error sending transcript:", chrome.runtime.lastError);
+            } else if (response) {
+              console.log("Background worker response:", response);
+            }
+          });
+        }
       };
       recognition.onspeechend = () => {
         recognition.stop();
@@ -153,31 +165,39 @@ draw.clean = () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
 };
 
-chrome.runtime.onConnect.addListener(p => {
-  port = p;
-});
-chrome.tabs.query({
-  active: true,
-  currentWindow: true
-}, ([tab]) => {
-  chrome.scripting.executeScript({
-    target: {
-      tabId: tab.id,
-      allFrames: true
-    },
-    files: ['data/inject/inject.js']
-  }, arr => {
-    document.getElementById('start').click();
+// We don't need to listen for connections here as the inject script connects to the background worker
 
-    const lastError = chrome.runtime.lastError;
-    if (lastError) {
-      return notify(lastError.message);
+// Check if we need to connect to an existing tab
+const params = new URLSearchParams(location.search);
+const tabId = params.get('tabId');
+
+if (tabId) {
+  chrome.tabs.get(parseInt(tabId), tab => {
+    if (chrome.runtime.lastError) {
+      notify(chrome.runtime.lastError.message);
+      return;
     }
-    if (!arr || !arr.filter(a => a.result).length) {
-      notify('No active input found!\nTo automatically fill the the input element on the page, first select it.');
-    }
+    
+    chrome.scripting.executeScript({
+      target: {
+        tabId: tab.id,
+        allFrames: true
+      },
+      files: ['data/inject/inject.js']
+    }, arr => {
+      // Auto-click start button to begin speech recognition
+      document.getElementById('start').click();
+
+      const lastError = chrome.runtime.lastError;
+      if (lastError) {
+        return notify(lastError.message);
+      }
+      if (!arr || !arr.filter(a => a.result).length) {
+        notify('No active input found!\nTo automatically fill the the input element on the page, first select it.');
+      }
+    });
   });
-});
+}
 
 document.getElementById('copy').addEventListener('click', () => {
   if (textarea.value) {
